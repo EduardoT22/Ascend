@@ -25,11 +25,11 @@ Week 12 practice used the Steam games dataset (steam_games.csv) from the MIST 46
 1. Open Module06.ipynb in Google Colab from this repo or Drive.
 2. Run the setup cell to load steam_games.csv from the MIST 4600 Drive folder.
 3. Run the Week 12 cells in order, then Project Step 1 with REPO_URL set to this repo.
-4. For the Ascend function, call goal_adjusted_calories(sex, age, height_inches, weight_lbs, activity_level, fitness_goal), for example goal_adjusted_calories("male", 25, 70, 180, "moderate", "lose").
+4. For the Ascend function, call goal_adjusted_calories(sex, age, height_inches, weight_lbs, activity_level, fitness_goal), for example goal_adjusted_calories("male", 25, 70, 180, "moderate", "lose weight").
 
 ## Example output
 Week 12 (20 games labeled): mode_counts both 9 / multiplayer 8 / single-player 3; mode_rating both 92.7, multiplayer 78.6, single-player 92.3.
-Ascend function example: a 25-year-old male, 70 inches, 180 lbs, moderate activity, lose goal gives a goal-adjusted daily calorie estimate (Mifflin-St Jeor maintenance minus 500).
+Ascend function example: goal_adjusted_calories("male", 25, 70, 180, "moderate", "lose weight") prints 2302.0 (Mifflin-St Jeor maintenance about 2802.0 minus 500 for a lose-weight goal).
 
 ## AI Use Disclosure
 Coming soon - to be completed by Eduardo.

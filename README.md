@@ -77,7 +77,12 @@ These numbers describe the app's goal-adjusted estimates for the sample profiles
 
 ## AI Use Disclosure
 
-Coming soon — to be completed by Eduardo.
+- **Used AI?** Yes
+- **Tools:** Muse (Meta's Muse agent) and Google Gemini (gemini-flash-lite-latest, in Colab)
+- **What I asked:** Draft the notebook code and text from my question and sub-questions, draft the `UserProfile` class and calorie functions, draft the pandas code for Q1–Q3, draft the Streamlit app, generate the 300 sample profiles, apply my logo and brand colors, and deploy the app.
+- **What I added / changed / fixed:** I chose the Ascend idea from MIST 2090, the one sentence, and Q1–Q4. I chose goal-adjusted calories instead of maintenance alone, I chose the 7 calculator.net activity levels instead of the original 3, I chose 300 rows, I chose the white background and transparent logo, and I checked the results — demo 2,925 / 2,425, lab test 2,302.0, Q1 lose 126 / gain 105 / maintain 69.
+- **What I designed / wrote myself:** The project idea, the proposal, the sub-questions, the branding and logo, the recommendation, and the decisions above.
+- **Understand every line?** Yes
 
 ## Author
 

@@ -53,7 +53,7 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Live Streamlit app link: coming soon — the app will be deployed on Streamlit Community Cloud, and the link will be added here.
+Live Streamlit app link: https://ascend-eduardot22.streamlit.app/
 
 ## Example output
 

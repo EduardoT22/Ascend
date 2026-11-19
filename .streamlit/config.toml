@@ -1,4 +1,11 @@
+# Ascend branding, exactly as the logo — see BRAND.md.
+# WHITE background (Eduardo, Nov 19, 2026): the logo is transparent,
+# so it blends into white. Gradient: pink #FF4D8D -> magenta #D500E6
+# -> purple #7C2FF7 -> blue #2E7DFF. Wordmark navy #0A1931.
 [theme]
-base = "dark"
+base = "light"
 primaryColor = "#7C2FF7"
-backgroundColor = "#0F0F1E"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F0FF"
+textColor = "#0A1931"
+font = "sans serif"

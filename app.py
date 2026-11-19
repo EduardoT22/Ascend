@@ -30,22 +30,37 @@ import pandas as pd
 from ascend import UserProfile
 from analysis import load_profiles, question_1, question_2, question_3
 
-st.set_page_config(page_title="Ascend — Personalized Fitness Profile", layout="wide")
+st.set_page_config(
+    page_title="Ascend — Personalized Fitness Profile",
+    page_icon="ascend-logo.png",
+    layout="wide",
+)
 
-# Ascend branding, from the MIST 2090 portfolio: gradient pink -> magenta
-# -> purple -> blue, dark navy background, tagline "RISE. TRACK. BECOME MORE."
-# The dark theme itself lives in .streamlit/config.toml; this header is the
-# wordmark + tagline, in the same gradient.
+# Ascend logo, from the MIST 2090 portfolio: stylized A, gradient
+# pink -> magenta -> purple -> blue, wordmark ASCEND, tagline
+# "RISE. TRACK. BECOME MORE." The file lives in the repo root, next
+# to app.py, so Streamlit Cloud loads it with the app.
+# Exact brand colors are in BRAND.md: pink #FF4D8D, magenta #D500E6,
+# purple #7C2FF7, blue #2E7DFF, navy #0A1931, background #0F0F1E.
+st.image("ascend-logo.png", width=300)
+
+# Brand the app exactly like the logo: gradient buttons, purple
+# accents, gradient divider. This CSS only changes styling, not math.
 st.markdown(
     """
-    <h1 style="background: linear-gradient(90deg, #FF2E88, #D500F9, #7C4DFF, #2979FF);
-               -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-               font-size: 3rem; margin-bottom: 0;">ASCEND</h1>
-    <p style="letter-spacing: 0.35em; color: #B388EB; margin-top: 0;">
-    RISE. TRACK. BECOME MORE.</p>
+    <style>
+    .stButton > button, .stFormSubmitButton > button {
+        background: linear-gradient(90deg, #FF4D8D, #D500E6, #7C2FF7, #2E7DFF);
+        color: white; border: none;
+    }
+    h1, h2, h3 { color: #FFFFFF; }
+    hr { border: none; height: 3px;
+         background: linear-gradient(90deg, #FF4D8D, #D500E6, #7C2FF7, #2E7DFF); }
+    </style>
     """,
     unsafe_allow_html=True,
 )
+st.markdown("---")
 st.write(
     "My app helps new Ascend users create a personalized fitness profile by "
     "validating their information, checking whether their goal weight aligns "
@@ -147,14 +162,14 @@ if submitted:
             )
 
 # ---------------------------------------------------------------------------
-# Section 2: the data questions, on the 12 sample profiles
+# Section 2: the data questions, on the 100 sample profiles
 # ---------------------------------------------------------------------------
 st.header("2. What the sample profiles show (Q1–Q3)")
 
 st.write(
     "These answers come from analysis.py, using the same calorie "
-    "definition as Section 1. The data is 12 made-up sample profiles "
-    "(Sample A–L) — no real users."
+    "definition as Section 1. The data is 100 made-up sample profiles "
+    "— no real users."
 )
 
 try:
@@ -179,7 +194,7 @@ try:
     q3 = question_3(df)
     st.dataframe(q3)
 
-    with st.expander("See the 12 sample profiles"):
+    with st.expander("See the 100 sample profiles"):
         st.dataframe(df)
 except FileNotFoundError:
     st.warning("sample_profiles.csv was not found next to app.py, so Q1–Q3 cannot load.")

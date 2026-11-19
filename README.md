@@ -1,5 +1,7 @@
 # Ascend
 
+![Ascend logo](ascend-logo.png)
+
 ### RISE. TRACK. BECOME MORE.
 
 **My app helps new Ascend users create a personalized fitness profile by validating their information, checking whether their goal weight aligns with their fitness goal, and estimating their daily calorie needs based on their personal metrics and activity level.**
@@ -51,7 +53,7 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Live Streamlit app link: https://ascend-eduardot22.streamlit.app/
+Live Streamlit app link: coming soon — the app will be deployed on Streamlit Community Cloud, and the link will be added here.
 
 ## Example output
 

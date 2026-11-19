@@ -97,14 +97,19 @@ with st.form("profile_form"):
         ["lose weight", "maintain weight", "gain weight"],
     )
     goal_weight_lbs = st.number_input("Goal weight (lb)", min_value=1.0, step=1.0, value=176.0)
-    # Calculator.net-style labels, mapped back to the lab's 3 levels below.
-    # Labels only — the math underneath is unchanged (low 1.2, moderate 1.55, high 1.725).
+    # Calculator.net's 7 activity choices, exactly as on calculator.net.
+    # Labels only — the multipliers are in ascend.py (1.0 / 1.2 / 1.375 /
+    # 1.55 / 1.725 / 1.9 / 1.95).
     activity_label = st.radio(
         "Activity Level",
         [
-            "Little or no exercise",
-            "Exercise 4-5 times/week",
-            "Intense exercise 6-7 times/week",
+            "Basal Metabolic Rate (BMR)",
+            "Sedentary: little or no exercise",
+            "Light: exercise 1-3 times/week",
+            "Moderate: exercise 4-5 times/week",
+            "Active: daily exercise or intense exercise 3-4 times/week",
+            "Very Active: intense exercise 6-7 times/week",
+            "Extra Active: very intense exercise daily, or physical job",
         ],
     )
     submitted = st.form_submit_button("Check my profile")
@@ -114,9 +119,13 @@ if submitted:
     # 6 ft 0 in = 72 in.
     height_inches = float(height_feet * 12 + height_inches_only)
     activity_level = {
-        "Little or no exercise": "low",
-        "Exercise 4-5 times/week": "moderate",
-        "Intense exercise 6-7 times/week": "high",
+        "Basal Metabolic Rate (BMR)": "bmr",
+        "Sedentary: little or no exercise": "sedentary",
+        "Light: exercise 1-3 times/week": "light",
+        "Moderate: exercise 4-5 times/week": "moderate",
+        "Active: daily exercise or intense exercise 3-4 times/week": "active",
+        "Very Active: intense exercise 6-7 times/week": "very_active",
+        "Extra Active: very intense exercise daily, or physical job": "extra_active",
     }[activity_label]
     # Build the class object — one UserProfile holds the 8 inputs.
     profile = UserProfile(
@@ -162,13 +171,13 @@ if submitted:
             )
 
 # ---------------------------------------------------------------------------
-# Section 2: the data questions, on the 100 sample profiles
+# Section 2: the data questions, on the 300 sample profiles
 # ---------------------------------------------------------------------------
 st.header("2. What the sample profiles show (Q1–Q3)")
 
 st.write(
     "These answers come from analysis.py, using the same calorie "
-    "definition as Section 1. The data is 100 made-up sample profiles "
+    "definition as Section 1. The data is 300 made-up sample profiles "
     "— no real users."
 )
 
@@ -194,7 +203,7 @@ try:
     q3 = question_3(df)
     st.dataframe(q3)
 
-    with st.expander("See the 100 sample profiles"):
+    with st.expander("See the 300 sample profiles"):
         st.dataframe(df)
 except FileNotFoundError:
     st.warning("sample_profiles.csv was not found next to app.py, so Q1–Q3 cannot load.")

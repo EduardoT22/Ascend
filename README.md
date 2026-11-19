@@ -25,13 +25,13 @@ My app answers four data questions (Q4 optional), exactly as submitted in my pro
 | 3 | Among lose/gain users, what is the typical desired % weight change for each activity level? | Median desired % change, lose and gain kept separate, grouped by activity level, with pandas |
 | 4 | (Optional) How do fitness goals and average daily calorie needs differ across age groups? | Group by age group (draft ranges 18-24, 25-34, 35-49 — not committed in the proposal) |
 
-For each new user, the app also validates the 8 profile fields (name, age, height_inches, weight_lbs, fitness_goal, goal_weight_lbs, activity_level, sex), checks the goal weight (lose = goal < current, maintain = goal = current, gain = goal > current), and estimates goal-adjusted daily calories: Mifflin-St Jeor BMR x activity = maintenance (low 1.2, moderate 1.55, high 1.725), then lose -500, maintain 0, gain +500. That ±500 is a simple documented rule, about 1 lb/week — my choice, not a medical recommendation. Validation and the goal-weight check are part of what the app does for a new user; they are not data questions.
+For each new user, the app also validates the 8 profile fields (name, age, height_inches, weight_lbs, fitness_goal, goal_weight_lbs, activity_level, sex), checks the goal weight (lose = goal < current, maintain = goal = current, gain = goal > current), and estimates goal-adjusted daily calories: Mifflin-St Jeor BMR x activity = maintenance, then lose -500, maintain 0, gain +500. Activity is calculator.net's 7 choices: BMR 1.0, Sedentary 1.2, Light 1.375, Moderate 1.55, Active 1.725, Very Active 1.9, Extra Active 1.95. This replaces the proposal's low / moderate / high (1.2 / 1.55 / 1.725) at Eduardo's request, Nov 19, 2026, to match calculator.net exactly. That ±500 is a simple documented rule, about 1 lb/week — my choice, not a medical recommendation. Validation and the goal-weight check are part of what the app does for a new user; they are not data questions.
 
 The Streamlit web app (`app.py`) is an interactive profile form collecting the same 8 fields, with the Ascend branding from MIST 2090: dark navy, gradient pink → magenta → purple → blue, and the tagline above.
 
 ## Data
 
-`sample_profiles.csv` is fabricated sample data, made up for this project because Ascend has no real users yet. It has 100 realistic profiles: ages 18-45, heights 60-76 in, weights from BMI 18-31, goal changes lose -4% to -12%, gain +4% to +9%, maintain 0%. No real users, no real names or personal metrics. Do not add real profiles to this public repo.
+`sample_profiles.csv` is fabricated sample data, made up for this project because Ascend has no real users yet. It has 300 realistic profiles, stratified so the spread is even: 7 activity levels x 3 fitness goals, about 42-44 profiles per activity level and 15-19 per lose/gain x activity group. Ages 18-45, heights 60-76 in, weights from BMI 18-31, goal changes lose -4% to -12%, gain +4% to +9%, maintain 0%. No real users, no real names or personal metrics. Do not add real profiles to this public repo.
 
 ## Built with
 
@@ -67,11 +67,11 @@ Estimated daily calories (goal-adjusted, lose -500): 2425
 Desired change %: -4.86
 ```
 
-100 sample profiles:
+300 sample profiles:
 
-- Q1: lose 43 (43.0%), gain 36 (36.0%), maintain 21 (21.0%)
-- Q2: average goal-adjusted daily calories — low 1,819.9 (n=24), moderate 2,331.3 (n=51), high 2,915.6 (n=25)
-- Q3: median desired % change — lose -7.72% (low, n=10), -8.50% (moderate, n=25), -8.10% (high, n=8); gain +7.37% (low, n=7), +5.90% (moderate, n=18), +6.67% (high, n=11)
+- Q1: lose 126 (42.0%), gain 105 (35.0%), maintain 69 (23.0%)
+- Q2: average goal-adjusted daily calories — BMR 1,614.4 (n=42), Sedentary 1,897.8 (n=43), Light 2,024.4 (n=43), Moderate 2,456.2 (n=44), Active 2,674.3 (n=43), Very Active 2,879.4 (n=43), Extra Active 2,955.2 (n=42)
+- Q3: median desired % change — lose -10.00% (BMR, n=17), -7.03% (Sedentary, n=18), -8.27% (Light, n=18), -9.09% (Moderate, n=19), -8.95% (Active, n=18), -8.20% (Very Active, n=18), -8.53% (Extra Active, n=18); gain +6.81% (BMR, n=15), +5.19% (Sedentary, n=15), +7.14% (Light, n=15), +5.77% (Moderate, n=15), +6.86% (Active, n=15), +6.98% (Very Active, n=15), +5.99% (Extra Active, n=15)
 
 These numbers describe the app's goal-adjusted estimates for the sample profiles. Because the estimate includes the goal (-500 / 0 / +500), activity groups may also differ in their mix of goals, so a higher average in one group is a difference in goal-adjusted estimates, not proof that activity alone caused it.
 

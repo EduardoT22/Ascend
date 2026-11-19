@@ -17,23 +17,35 @@ Proposal source of truth:
   - name, age, height_inches, weight_lbs, fitness_goal,
     goal_weight_lbs, activity_level, sex
   - fitness_goal: "lose weight" | "maintain weight" | "gain weight"
-  - activity_level: "low" | "moderate" | "high"
+  - activity_level: originally "low" | "moderate" | "high" in the
+    submitted proposal. Changed Nov 19, 2026, at Eduardo's request,
+    to calculator.net's 7 activity choices (see below) — the lab
+    function in Module06 Cell 35 must be changed to match.
   - sex: "male" | "female"
   - desired_weight_change_pct = (goal - current) / current * 100
 """
 
-# Activity multipliers for the maintenance estimate.
-# low = mostly sedentary, moderate = active most days,
-# high = very active. Documented here so the README, app, and
-# analysis all use the same numbers.
+# Activity multipliers for the maintenance estimate — calculator.net's
+# 7 choices, exactly as shown on calculator.net/calorie-calculator.html:
+# BMR = rest only (1.0), Sedentary = little or no exercise (1.2),
+# Light = exercise 1-3 times/week (1.375), Moderate = exercise
+# 4-5 times/week (1.55), Active = daily exercise or intense exercise
+# 3-4 times/week (1.725), Very Active = intense exercise 6-7 times/week
+# (1.9), Extra Active = very intense exercise daily, or physical job
+# (1.95, the top of calculator.net's 1.2-1.95 activity-factor range).
+# Documented here so the README, app, and analysis all use the same numbers.
 ACTIVITY_MULTIPLIERS = {
-    "low": 1.2,
+    "bmr": 1.0,
+    "sedentary": 1.2,
+    "light": 1.375,
     "moderate": 1.55,
-    "high": 1.725,
+    "active": 1.725,
+    "very_active": 1.9,
+    "extra_active": 1.95,
 }
 
 FITNESS_GOALS = ("lose weight", "maintain weight", "gain weight")
-ACTIVITY_LEVELS = ("low", "moderate", "high")
+ACTIVITY_LEVELS = ("bmr", "sedentary", "light", "moderate", "active", "very_active", "extra_active")
 SEXES = ("male", "female")
 
 # Goal adjustment, in calories/day, applied to maintenance (TDEE).

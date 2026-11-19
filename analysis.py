@@ -72,7 +72,7 @@ def question_2(df):
         df.groupby("activity_level")["estimated_daily_calories"]
         .agg(["count", "mean"])
         .round(1)
-        .reindex(["low", "moderate", "high"])
+        .reindex(["bmr", "sedentary", "light", "moderate", "active", "very_active", "extra_active"])
     )
 
 

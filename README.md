@@ -25,9 +25,11 @@ My app answers four data questions (Q4 optional), exactly as submitted in my pro
 | 3 | Among lose/gain users, what is the typical desired % weight change for each activity level? | Median desired % change, lose and gain kept separate, grouped by activity level, with pandas |
 | 4 | (Optional) How do fitness goals and average daily calorie needs differ across age groups? | Group by age group (draft ranges 18-24, 25-34, 35-49 — not committed in the proposal) |
 
-For each new user, the app also validates the 8 profile fields (name, age, height_inches, weight_lbs, fitness_goal, goal_weight_lbs, activity_level, sex), checks the goal weight (lose = goal < current, maintain = goal = current, gain = goal > current), and estimates goal-adjusted daily calories: Mifflin-St Jeor BMR x activity = maintenance, then lose -500, maintain 0, gain +500. Activity is calculator.net's 7 choices: BMR 1.0, Sedentary 1.2, Light 1.375, Moderate 1.55, Active 1.725, Very Active 1.9, Extra Active 1.95. This replaces the proposal's low / moderate / high (1.2 / 1.55 / 1.725) at Eduardo's request, Nov 19, 2026, to match calculator.net exactly. That ±500 is a simple documented rule, about 1 lb/week — my choice, not a medical recommendation. Validation and the goal-weight check are part of what the app does for a new user; they are not data questions.
+For each new user, the app also validates the 8 profile fields (name, age, height_inches, weight_lbs, fitness_goal, goal_weight_lbs, activity_level, sex), checks the goal weight (lose = goal < current, maintain = goal = current, gain = goal > current), and estimates goal-adjusted daily calories: Mifflin-St Jeor BMR x activity = maintenance, then lose -500 per lb/week wanted, maintain 0, gain +500. Activity is calculator.net's 7 choices: BMR 1.0, Sedentary 1.2, Light 1.375, Moderate 1.55, Active 1.725, Very Active 1.9, Extra Active 1.95. This replaces the proposal's low / moderate / high (1.2 / 1.55 / 1.725) at Eduardo's request, Nov 19, 2026, to match calculator.net exactly.
 
-The Streamlit web app (`app.py`) is an interactive profile form collecting the same 8 fields, with the Ascend branding from MIST 2090: dark navy, gradient pink → magenta → purple → blue, and the tagline above.
+**Weight-loss rate (added Nov 19, 2026, after talking with my professor):** for lose weight, the user picks how fast to lose — 0.5, 1.0, or 1.5 lb/week on a slider, default 1.0. The deficit is rate x 500 cal/day (-250 / -500 / -750), because 1 lb of fat is about 3,500 cal, so 3,500 / 7 days = 500 cal/day per lb/week. Weeks to goal is (current - goal) / rate: the demo user (185 → 176 lb, 9 lb) takes 18 weeks at 0.5, 9 at 1.0, 6 at 1.5. That is a plan from the user's own numbers, not a prediction from past users — the sample data has no outcomes, so it cannot prove a calorie level works. That ±500 per lb/week is a simple documented rule, not a medical recommendation. Validation and the goal-weight check are part of what the app does for a new user; they are not data questions.
+
+The Streamlit web app (`app.py`) is an interactive profile form collecting the same 8 fields, with the Ascend branding from MIST 2090: white background, navy text, gradient pink → magenta → purple → blue, and the tagline above. It is profile-only — Q1–Q3 are answered in the notebook, not displayed in the app. After a profile is checked, the app shows a line chart of weight over time at all 3 rates, with the slider's rate highlighted in Ascend colors (0.5 pink, 1.0 purple, 1.5 blue) and the other two muted grey, plus a dashed goal-weight line.
 
 ## Data
 
@@ -57,14 +59,18 @@ Live Streamlit app link: https://ascend-eduardot22.streamlit.app/
 
 ## Example output
 
-One profile — 20-year-old male, 72 in, 185 lb, lose to 176 lb, moderate activity:
+One profile — 20-year-old male, 72 in, 185 lb, lose to 176 lb, moderate activity, 1.0 lb/week:
 
 ```
 Errors: []
 Goal check: Goal weight 176 lb fits 'lose weight' at 185 lb.
 Maintenance calories: 2925
-Estimated daily calories (goal-adjusted, lose -500): 2425
+Estimated daily calories (goal-adjusted, lose -500 at 1.0 lb/week): 2425
 Desired change %: -4.86
+Weeks to goal at 1.0 lb/week: 9.0
+  at 0.5 lb/week: 2675 cal/day, 18 weeks
+  at 1.0 lb/week: 2425 cal/day, 9 weeks
+  at 1.5 lb/week: 2175 cal/day, 6 weeks
 ```
 
 300 sample profiles:

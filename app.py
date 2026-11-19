@@ -1,38 +1,50 @@
 """
-Ascend — Streamlit app (DRAFT, built Nov 17, 2026 for the MIST 4600 workday)
+Ascend — Streamlit app (updated Nov 19, 2026)
 
 What this file is, in plain terms:
   This is ONLY the front-end. It does no calorie math of its own.
-  It collects the 8 profile fields in a form, hands them to the
+  It collects the profile fields in a form, hands them to the
   code Eduardo already has, and shows the results:
     - ascend.py  -> UserProfile class: validate(), goal_check(),
       maintenance_calories, estimated_daily_calories,
-      desired_weight_change_pct
-    - analysis.py -> load_profiles(), question_1/2/3: the pandas
-      answers on the 300 sample profiles
+      desired_weight_change_pct, weeks_to_goal,
+      projected_weight_path()
 
-  So if the professor asks "where does the number come from?",
-  the answer is always ascend.py, not this file.
+  Q1-Q3 are NOT shown here. They stay in the notebook
+  (ascend.ipynb), where they are answered with pandas on the
+  300 sample profiles. This app is for creating one profile
+  and seeing that person's plan.
+
+  New Nov 19, 2026 — weight-loss rate slider: for lose weight,
+  pick 0.5 / 1.0 / 1.5 lb/week. Deficit is rate x 500 cal/day
+  (-250 / -500 / -750), 1 lb of fat is about 3,500 cal, so
+  3,500 / 7 = 500. Default 1.0, so the demo is unchanged.
+  The line chart below shows weight over time at all 3 rates,
+  with the slider's rate highlighted in Ascend colors and the
+  other two muted. That chart is a plan from the user's own
+  numbers — the sample data has no outcomes, so it cannot
+  prove a calorie level works.
 
 How to run it (on Eduardo's laptop, in the project folder):
     pip install -r requirements.txt
     streamlit run app.py
   That opens http://localhost:8501 in the browser.
-  For the showcase, the same repo can be deployed free on
-  Streamlit Cloud for a shareable link — no code change needed.
-
-Sample data only: the Q1-Q3 section uses sample_profiles.csv
-(Sample A-L, made-up profiles). No real names or metrics.
+  Live: https://ascend-eduardot22.streamlit.app/
 """
 import streamlit as st
 import pandas as pd
 import altair as alt
 
-from ascend import UserProfile
-from analysis import load_profiles, question_1, question_2, question_3
+from ascend import (
+    UserProfile,
+    WEIGHT_LOSS_RATES,
+    projected_weight_path,
+    weight_loss_deficit,
+)
 
 # Brand colors, exactly as the logo — see BRAND.md.
-BRAND = ["#FF4D8D", "#D500E6", "#B000F0", "#7C2FF7", "#5A3DFF", "#2E7DFF", "#00B4FF"]
+# Rate colors: 0.5 pink, 1.0 purple, 1.5 blue.
+RATE_COLORS = {0.5: "#FF4D8D", 1.0: "#7C2FF7", 1.5: "#2E7DFF"}
 
 st.set_page_config(
     page_title="Ascend — Personalized Fitness Profile",
@@ -41,10 +53,7 @@ st.set_page_config(
 )
 
 # Ascend logo, transparent version: the white background was removed,
-# so the logo blends into the white app background. The file lives in
-# the repo root, next to app.py, so Streamlit Cloud loads it with the app.
-# Exact brand colors are in BRAND.md: pink #FF4D8D, magenta #D500E6,
-# purple #7C2FF7, blue #2E7DFF, navy #0A1931, background white #FFFFFF.
+# so the logo blends into the white app background.
 st.image("ascend-logo-transparent.png", width=300)
 
 # Brand the app exactly like the logo, on a WHITE background:
@@ -73,7 +82,7 @@ st.write(
     "with their fitness goal, and estimating their daily calorie needs based "
     "on their personal metrics and activity level."
 )
-st.caption("MIST 4600 project — Python + pandas + Streamlit. Sample data only in the analysis below.")
+st.caption("MIST 4600 project — Python + pandas + Streamlit. Q1–Q3 are answered in the notebook, not here.")
 
 # ---------------------------------------------------------------------------
 # Section 1: one new user's profile
@@ -84,7 +93,8 @@ st.write(
     "Fill in the 8 fields from the proposal, then press the button. "
     "Ascend validates the entries, checks the goal weight, and estimates "
     "a goal-adjusted daily calorie target: maintenance (Mifflin-St Jeor "
-    "BMR x activity) then lose -500, maintain 0, gain +500."
+    "BMR x activity), then lose -500 per lb/week wanted, maintain 0, "
+    "gain +500."
 )
 
 with st.form("profile_form"):
@@ -103,9 +113,15 @@ with st.form("profile_form"):
         ["lose weight", "maintain weight", "gain weight"],
     )
     goal_weight_lbs = st.number_input("Goal weight (lb)", min_value=1.0, step=1.0, value=176.0)
+    # Weight-loss rate slider — lose weight only. 0.5 / 1.0 / 1.5 lb/week,
+    # step 0.5, default 1.0. Ignored for maintain / gain.
+    weight_loss_rate = st.select_slider(
+        "How fast do you want to lose weight? (lb/week — lose weight only)",
+        options=list(WEIGHT_LOSS_RATES),
+        value=1.0,
+        help="0.5 lb/week is -250 cal/day, 1.0 is -500, 1.5 is -750. 1 lb of fat is about 3,500 cal, so 3,500 / 7 = 500 cal/day per lb/week. Not a medical recommendation.",
+    )
     # Calculator.net's 7 activity choices, exactly as on calculator.net.
-    # Labels only — the multipliers are in ascend.py (1.0 / 1.2 / 1.375 /
-    # 1.55 / 1.725 / 1.9 / 1.95).
     activity_label = st.radio(
         "Activity Level",
         [
@@ -121,8 +137,6 @@ with st.form("profile_form"):
     submitted = st.form_submit_button("Check my profile")
 
 if submitted:
-    # Convert feet + inches to total inches, exactly what the lab takes.
-    # 6 ft 0 in = 72 in.
     height_inches = float(height_feet * 12 + height_inches_only)
     activity_level = {
         "Basal Metabolic Rate (BMR)": "bmr",
@@ -133,7 +147,6 @@ if submitted:
         "Very Active: intense exercise 6-7 times/week": "very_active",
         "Extra Active: very intense exercise daily, or physical job": "extra_active",
     }[activity_label]
-    # Build the class object — one UserProfile holds the 8 inputs.
     profile = UserProfile(
         name=name,
         age=int(age),
@@ -143,93 +156,127 @@ if submitted:
         goal_weight_lbs=float(goal_weight_lbs),
         activity_level=activity_level,
         sex=sex,
+        weight_loss_rate_lb_per_week=float(weight_loss_rate),
     )
 
-    # Step 1: validation — "did the user fill in every field?" etc.
-    # validate_profile() returns a list of error strings; empty = valid.
     errors = profile.validate()
     if errors:
         st.error("Please fix these entries:")
         for error in errors:
             st.write(f"- {error}")
     else:
-        # Step 2: goal-weight check — lose < current, maintain = current,
-        # gain > current. Returns (passes, message).
         passes, message = profile.goal_check()
         if not passes:
             st.error(message)
             st.write("Fix the goal or the goal weight, then try again.")
         else:
             st.success(message)
-            # Step 3: the two calorie numbers, both from ascend.py.
-            # maintenance = BMR x activity; estimated = maintenance + goal adjustment.
             st.subheader("Your estimate")
             col1, col2, col3 = st.columns(3)
             col1.metric("Maintenance calories", f"{profile.maintenance_calories:,} / day")
             col2.metric("Goal-adjusted daily calories", f"{profile.estimated_daily_calories:,} / day")
             col3.metric("Desired weight change", f"{profile.desired_weight_change_pct:.2f}%")
-            st.write(
-                f"Maintenance is {profile.maintenance_calories:,} cal/day. "
-                f"For '{fitness_goal}' Ascend adjusts it by "
-                f"{profile.estimated_daily_calories - profile.maintenance_calories:+,} "
-                f"to {profile.estimated_daily_calories:,} cal/day. "
-                "Desired % change is what you want to change, not what you lost or gained."
-            )
+            if fitness_goal == "lose weight":
+                st.write(
+                    f"Maintenance is {profile.maintenance_calories:,} cal/day. "
+                    f"At {weight_loss_rate} lb/week, Ascend adjusts it by "
+                    f"{weight_loss_deficit(weight_loss_rate):+,} "
+                    f"to {profile.estimated_daily_calories:,} cal/day. "
+                    f"That is {profile.weeks_to_goal:.0f} weeks to your goal. "
+                    "Desired % change is what you want to change, not what you lost or gained."
+                )
+                if profile.estimated_daily_calories < 1200:
+                    st.warning(
+                        "This target is below 1,200 cal/day. A fast rate is not "
+                        "right for everyone — consider a slower rate. "
+                        "This is not medical advice."
+                    )
+            else:
+                st.write(
+                    f"Maintenance is {profile.maintenance_calories:,} cal/day. "
+                    f"For '{fitness_goal}' Ascend adjusts it by "
+                    f"{profile.estimated_daily_calories - profile.maintenance_calories:+,} "
+                    f"to {profile.estimated_daily_calories:,} cal/day. "
+                    "Desired % change is what you want to change, not what you lost or gained."
+                )
 
-# ---------------------------------------------------------------------------
-# Section 2: the data questions, on the 300 sample profiles
-# ---------------------------------------------------------------------------
-st.header("2. What the sample profiles show (Q1–Q3)")
-
-st.write(
-    "These answers come from analysis.py, using the same calorie "
-    "definition as Section 1. The data is 300 made-up sample profiles "
-    "— no real users."
-)
-
-try:
-    df = load_profiles("sample_profiles.csv")
-    st.write(f"Profiles analysed: {len(df)} (sample data only)")
-
-    st.subheader("Q1 — How does the distribution of fitness goals compare?")
-    q1 = question_1(df)
-    st.dataframe(q1)
-    q1_chart = q1.reset_index()
-    st.altair_chart(
-        alt.Chart(q1_chart)
-        .mark_bar()
-        .encode(
-            x=alt.X("fitness_goal:N", title="Fitness goal"),
-            y=alt.Y("count:Q", title="Users"),
-            color=alt.Color("fitness_goal:N", scale=alt.Scale(range=BRAND[:3]), legend=None),
-        ),
-        use_container_width=True,
-    )
-
-    st.subheader("Q2 — Average estimated daily calories (goal-adjusted) by activity level")
-    st.write(
-        "Note: these are goal-adjusted averages, so a group average mixes "
-        "activity AND the mix of lose / maintain / gain users in that group."
-    )
-    q2 = question_2(df)
-    st.dataframe(q2)
-    q2_chart = q2.reset_index()
-    st.altair_chart(
-        alt.Chart(q2_chart)
-        .mark_bar()
-        .encode(
-            x=alt.X("activity_level:N", title="Activity level", sort=["bmr", "sedentary", "light", "moderate", "active", "very_active", "extra_active"]),
-            y=alt.Y("mean:Q", title="Average daily calories"),
-            color=alt.Color("activity_level:N", scale=alt.Scale(domain=["bmr", "sedentary", "light", "moderate", "active", "very_active", "extra_active"], range=BRAND), legend=None),
-        ),
-        use_container_width=True,
-    )
-
-    st.subheader("Q3 — Median desired % weight change, lose / gain users, by goal x activity")
-    q3 = question_3(df)
-    st.dataframe(q3)
-
-    with st.expander("See the 300 sample profiles"):
-        st.dataframe(df)
-except FileNotFoundError:
-    st.warning("sample_profiles.csv was not found next to app.py, so Q1–Q3 cannot load.")
+            # -------------------------------------------------------------------
+            # Section 2: your journey — weight over time, by rate
+            # -------------------------------------------------------------------
+            st.header("2. Your journey to your goal")
+            if fitness_goal == "lose weight":
+                st.write(
+                    "All 3 lines start at your current weight and end at your "
+                    "goal weight. The line for the rate you picked is highlighted "
+                    "in Ascend colors; the other two are muted, for comparison. "
+                    "This is a plan from your own numbers — not a prediction "
+                    "from past users."
+                )
+                # Build one row per week per rate, for the Altair line chart.
+                rows = []
+                for rate in WEIGHT_LOSS_RATES:
+                    for week, weight in projected_weight_path(
+                        float(weight_lbs), float(goal_weight_lbs), fitness_goal, rate
+                    ):
+                        rows.append(
+                            {
+                                "week": week,
+                                "weight": weight,
+                                "rate": f"{rate} lb/week",
+                                "selected": rate == float(weight_loss_rate),
+                            }
+                        )
+                chart_df = pd.DataFrame(rows)
+                selected_df = chart_df[chart_df["selected"]]
+                other_df = chart_df[~chart_df["selected"]]
+                # Selected line: its Ascend color, thick. Others: light grey, thin.
+                selected_color = RATE_COLORS[float(weight_loss_rate)]
+                selected_line = (
+                    alt.Chart(selected_df)
+                    .mark_line(strokeWidth=4)
+                    .encode(
+                        x=alt.X("week:Q", title="Weeks"),
+                        y=alt.Y("weight:Q", title="Weight (lb)", scale=alt.Scale(zero=False)),
+                        color=alt.Color(
+                            "rate:N",
+                            scale=alt.Scale(domain=[f"{float(weight_loss_rate)} lb/week"], range=[selected_color]),
+                            title="Rate",
+                        ),
+                    )
+                )
+                other_rates = [r for r in WEIGHT_LOSS_RATES if r != float(weight_loss_rate)]
+                other_line = (
+                    alt.Chart(other_df)
+                    .mark_line(strokeWidth=1.5, opacity=0.7)
+                    .encode(
+                        x=alt.X("week:Q", title="Weeks"),
+                        y=alt.Y("weight:Q", title="Weight (lb)", scale=alt.Scale(zero=False)),
+                        color=alt.Color(
+                            "rate:N",
+                            scale=alt.Scale(domain=[f"{r} lb/week" for r in other_rates], range=["#D3D3D3", "#D3D3D3"]),
+                            title="Rate",
+                        ),
+                    )
+                )
+                goal_rule = (
+                    alt.Chart(pd.DataFrame({"goal": [float(goal_weight_lbs)]}))
+                    .mark_rule(strokeDash=[6, 4], color="#0A1931")
+                    .encode(y="goal:Q")
+                )
+                st.altair_chart(selected_line + other_line + goal_rule, use_container_width=True)
+                st.write(
+                    f"At your chosen rate, **{weight_loss_rate} lb/week**, "
+                    f"that is **{profile.estimated_daily_calories:,} cal/day** "
+                    f"and **{profile.weeks_to_goal:.0f} weeks** to your goal. "
+                    f"At 0.5 it would be {profile.maintenance_calories - 250:,} cal/day "
+                    f"and {(float(weight_lbs) - float(goal_weight_lbs)) / 0.5:.0f} weeks; "
+                    f"at 1.5 it would be {profile.maintenance_calories - 750:,} cal/day "
+                    f"and {(float(weight_lbs) - float(goal_weight_lbs)) / 1.5:.0f} weeks."
+                )
+            elif fitness_goal == "gain weight":
+                st.write(
+                    f"At +500 cal/day, about 1 lb/week, that is "
+                    f"**{profile.weeks_to_goal:.0f} weeks** to your goal."
+                )
+            else:
+                st.write("You are already at your goal weight — 0 weeks to go.")

@@ -8,10 +8,17 @@ What this file does, in plain terms:
      maintain = current, gain > current.
   4. Estimates daily calories as a GOAL-ADJUSTED target (Eduardo's
      choice, Nov 15, 2026): first Mifflin-St Jeor BMR x an activity
-     multiplier = maintenance (TDEE), then adjust for the goal:
-     lose weight -500, maintain weight 0, gain weight +500.
-     The 500 is a simple, documented rule — about 1 lb/week —
-     not a medical recommendation.
+     multiplier = maintenance (TDEE), then adjust for the goal.
+     Lose weight: -500 cal/day for every 1 lb/week the user wants
+     to lose (Nov 19, 2026: rate slider 0.5 / 1.0 / 1.5 lb/week,
+     so -250 / -500 / -750). Maintain weight 0, gain weight +500
+     (about 1 lb/week). The 500 per lb/week is a simple, documented
+     rule — 1 lb of fat is about 3,500 cal, so 3,500 / 7 days = 500
+     cal/day per lb/week — not a medical recommendation.
+  5. Weeks to goal and a projected weight path: for lose users,
+     (current - goal) / rate. That is a plan from the user's own
+     numbers, not a prediction from past users — the sample data
+     has no outcomes, so it cannot prove a calorie level works.
 
 Proposal source of truth:
   - name, age, height_inches, weight_lbs, fitness_goal,
@@ -49,12 +56,60 @@ ACTIVITY_LEVELS = ("bmr", "sedentary", "light", "moderate", "active", "very_acti
 SEXES = ("male", "female")
 
 # Goal adjustment, in calories/day, applied to maintenance (TDEE).
-# lose -500, maintain 0, gain +500. Simple and documented.
+# Maintain 0, gain +500. Lose: -500 per lb/week wanted, so the
+# rate slider (0.5 / 1.0 / 1.5) gives -250 / -500 / -750.
+# 1 lb/week is the default, so the old -500 lose case is unchanged.
 GOAL_ADJUSTMENTS = {
     "lose weight": -500,
     "maintain weight": 0,
     "gain weight": 500,
 }
+
+WEIGHT_LOSS_RATES = (0.5, 1.0, 1.5)
+
+
+def weight_loss_deficit(weight_loss_rate_lb_per_week):
+    """Deficit in cal/day for a lose rate. Takes in lb/week, returns a negative int.
+
+    1 lb of fat is about 3,500 cal, so 3,500 / 7 days = 500 cal/day
+    per lb/week. 0.5 -> -250, 1.0 -> -500, 1.5 -> -750.
+    """
+    return -int(weight_loss_rate_lb_per_week * 500)
+
+
+def weeks_to_goal(weight_lbs, goal_weight_lbs, fitness_goal, weight_loss_rate_lb_per_week=1.0):
+    """Weeks to reach the goal weight. Takes in current/goal/goal/rate, returns a float.
+
+    Lose: (current - goal) / rate. Gain: (goal - current) / 1.0,
+    because gain is +500, about 1 lb/week. Maintain: 0.
+    Example: 185 -> 176 lose is 9 lb: 18 weeks at 0.5, 9 at 1.0, 6 at 1.5.
+    This is a plan from the user's own numbers, not a prediction.
+    """
+    if fitness_goal == "lose weight":
+        return (weight_lbs - goal_weight_lbs) / weight_loss_rate_lb_per_week
+    if fitness_goal == "gain weight":
+        return goal_weight_lbs - weight_lbs
+    return 0.0
+
+
+def projected_weight_path(weight_lbs, goal_weight_lbs, fitness_goal, weight_loss_rate_lb_per_week=1.0):
+    """Weekly weight points from current to goal. Returns a list of (week, weight).
+
+    Lose: one point per week, dropping by the rate each week, until
+    the goal (last point is exactly the goal). Gain: +1 lb/week.
+    Maintain: one point, the current weight. Used for the line chart.
+    """
+    if fitness_goal == "maintain weight":
+        return [(0, float(weight_lbs))]
+    if fitness_goal == "gain weight":
+        total = int(goal_weight_lbs - weight_lbs)
+        return [(w, float(weight_lbs + w)) for w in range(total + 1)]
+    total_weeks = int((weight_lbs - goal_weight_lbs) / weight_loss_rate_lb_per_week)
+    points = []
+    for w in range(total_weeks + 1):
+        points.append((w, float(weight_lbs - w * weight_loss_rate_lb_per_week)))
+    points[-1] = (total_weeks, float(goal_weight_lbs))
+    return points
 
 
 def validate_profile(profile):
@@ -158,18 +213,23 @@ def estimate_maintenance_calories(sex, age, height_inches, weight_lbs, activity_
     return round(bmr * activity_multiplier(activity_level))
 
 
-def estimate_daily_calories(sex, age, height_inches, weight_lbs, activity_level, fitness_goal):
+def estimate_daily_calories(sex, age, height_inches, weight_lbs, activity_level, fitness_goal, weight_loss_rate_lb_per_week=1.0):
     """Estimate GOAL-ADJUSTED daily calories — the app's recommended intake.
 
-    Takes in sex, age, height, weight, activity_level, fitness_goal.
+    Takes in sex, age, height, weight, activity_level, fitness_goal,
+    and (lose only) weight_loss_rate_lb_per_week, default 1.0.
     Returns estimated calories/day, rounded to the nearest whole calorie.
     This is maintenance (TDEE) + goal adjustment:
-    lose weight -500, maintain weight 0, gain weight +500.
-    Example: maintenance 2,925, lose goal -> 2,425; gain goal -> 3,425.
+    lose weight -500 per lb/week wanted (-250 / -500 / -750 for
+    0.5 / 1.0 / 1.5), maintain weight 0, gain weight +500.
+    Example: maintenance 2,925, lose goal -> 2,675 at 0.5, 2,425 at
+    1.0, 2,175 at 1.5; gain goal -> 3,425.
     """
     maintenance = estimate_maintenance_calories(
         sex, age, height_inches, weight_lbs, activity_level
     )
+    if fitness_goal == "lose weight":
+        return maintenance + weight_loss_deficit(weight_loss_rate_lb_per_week)
     return maintenance + GOAL_ADJUSTMENTS[fitness_goal]
 
 
@@ -193,7 +253,8 @@ class UserProfile:
     """
 
     def __init__(self, name, age, height_inches, weight_lbs,
-                 fitness_goal, goal_weight_lbs, activity_level, sex):
+                 fitness_goal, goal_weight_lbs, activity_level, sex,
+                 weight_loss_rate_lb_per_week=1.0):
         self.name = name
         self.age = age
         self.height_inches = height_inches
@@ -202,6 +263,10 @@ class UserProfile:
         self.goal_weight_lbs = goal_weight_lbs
         self.activity_level = activity_level
         self.sex = sex
+        # Lose only: 0.5 / 1.0 / 1.5 lb/week, default 1.0. Ignored
+        # for maintain / gain. Sample profiles use the default, so
+        # Q1-Q3 in analysis.py are unchanged by the slider.
+        self.weight_loss_rate_lb_per_week = weight_loss_rate_lb_per_week
 
     def as_dict(self):
         """Return the 8 input fields as a dict."""
@@ -218,7 +283,10 @@ class UserProfile:
 
     def validate(self):
         """Return a list of validation errors (empty = valid)."""
-        return validate_profile(self.as_dict())
+        errors = validate_profile(self.as_dict())
+        if self.fitness_goal == "lose weight" and self.weight_loss_rate_lb_per_week not in WEIGHT_LOSS_RATES:
+            errors.append("weight_loss_rate_lb_per_week: choose 0.5, 1.0, or 1.5 lb/week.")
+        return errors
 
     def goal_check(self):
         """Return (passes, message) for the goal-weight check."""
@@ -237,6 +305,15 @@ class UserProfile:
         return estimate_daily_calories(
             self.sex, self.age, self.height_inches, self.weight_lbs,
             self.activity_level, self.fitness_goal,
+            self.weight_loss_rate_lb_per_week,
+        )
+
+    @property
+    def weeks_to_goal(self):
+        """Weeks to reach the goal weight at this profile's rate."""
+        return weeks_to_goal(
+            self.weight_lbs, self.goal_weight_lbs, self.fitness_goal,
+            self.weight_loss_rate_lb_per_week,
         )
 
     @property
@@ -267,5 +344,9 @@ if __name__ == "__main__":
     print("Errors:", demo.validate())
     print("Goal check:", demo.goal_check())
     print("Maintenance calories:", demo.maintenance_calories)
-    print("Estimated daily calories (goal-adjusted, lose -500):", demo.estimated_daily_calories)
+    print("Estimated daily calories (goal-adjusted, lose -500 at 1.0 lb/week):", demo.estimated_daily_calories)
     print("Desired change %:", round(demo.desired_weight_change_pct, 2))
+    print("Weeks to goal at 1.0 lb/week:", demo.weeks_to_goal)
+    for rate in WEIGHT_LOSS_RATES:
+        print(f"  at {rate} lb/week: {estimate_daily_calories(demo.sex, demo.age, demo.height_inches, demo.weight_lbs, demo.activity_level, demo.fitness_goal, rate)} cal/day, "
+              f"{weeks_to_goal(demo.weight_lbs, demo.goal_weight_lbs, demo.fitness_goal, rate):.0f} weeks")

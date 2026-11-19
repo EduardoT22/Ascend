@@ -12,3 +12,10 @@ Logo file: `ascend-logo.png` (MIST 2090 portfolio, Eduardo Torres and Thomas Bur
 
 Use these exact hex codes everywhere: app.py CSS, .streamlit/config.toml,
 notebook charts, README. Do not invent a different purple or pink.
+
+## White background version (Nov 19, 2026)
+- App background is WHITE #FFFFFF, text navy #0A1931 — not dark.
+- Logo file `ascend-logo-transparent.png`: white background removed,
+  so the logo blends into white. Corners are fully transparent.
+- Buttons, divider, and charts use the gradient above. Q1/Q2 charts
+  in app.py are Altair, colored with the 7 brand colors.

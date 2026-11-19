@@ -9,7 +9,7 @@ What this file is, in plain terms:
       maintenance_calories, estimated_daily_calories,
       desired_weight_change_pct
     - analysis.py -> load_profiles(), question_1/2/3: the pandas
-      answers on the 12 sample profiles
+      answers on the 300 sample profiles
 
   So if the professor asks "where does the number come from?",
   the answer is always ascend.py, not this file.
@@ -26,34 +26,40 @@ Sample data only: the Q1-Q3 section uses sample_profiles.csv
 """
 import streamlit as st
 import pandas as pd
+import altair as alt
 
 from ascend import UserProfile
 from analysis import load_profiles, question_1, question_2, question_3
 
+# Brand colors, exactly as the logo — see BRAND.md.
+BRAND = ["#FF4D8D", "#D500E6", "#B000F0", "#7C2FF7", "#5A3DFF", "#2E7DFF", "#00B4FF"]
+
 st.set_page_config(
     page_title="Ascend — Personalized Fitness Profile",
-    page_icon="ascend-logo.png",
+    page_icon="ascend-logo-transparent.png",
     layout="wide",
 )
 
-# Ascend logo, from the MIST 2090 portfolio: stylized A, gradient
-# pink -> magenta -> purple -> blue, wordmark ASCEND, tagline
-# "RISE. TRACK. BECOME MORE." The file lives in the repo root, next
-# to app.py, so Streamlit Cloud loads it with the app.
+# Ascend logo, transparent version: the white background was removed,
+# so the logo blends into the white app background. The file lives in
+# the repo root, next to app.py, so Streamlit Cloud loads it with the app.
 # Exact brand colors are in BRAND.md: pink #FF4D8D, magenta #D500E6,
-# purple #7C2FF7, blue #2E7DFF, navy #0A1931, background #0F0F1E.
-st.image("ascend-logo.png", width=300)
+# purple #7C2FF7, blue #2E7DFF, navy #0A1931, background white #FFFFFF.
+st.image("ascend-logo-transparent.png", width=300)
 
-# Brand the app exactly like the logo: gradient buttons, purple
-# accents, gradient divider. This CSS only changes styling, not math.
+# Brand the app exactly like the logo, on a WHITE background:
+# gradient buttons, navy headings, gradient divider. This CSS only
+# changes styling, not math. The light theme itself is in
+# .streamlit/config.toml (background #FFFFFF, text #0A1931).
 st.markdown(
     """
     <style>
+    .stApp { background-color: #FFFFFF; color: #0A1931; }
     .stButton > button, .stFormSubmitButton > button {
         background: linear-gradient(90deg, #FF4D8D, #D500E6, #7C2FF7, #2E7DFF);
         color: white; border: none;
     }
-    h1, h2, h3 { color: #FFFFFF; }
+    h1, h2, h3 { color: #0A1931; }
     hr { border: none; height: 3px;
          background: linear-gradient(90deg, #FF4D8D, #D500E6, #7C2FF7, #2E7DFF); }
     </style>
@@ -188,7 +194,17 @@ try:
     st.subheader("Q1 — How does the distribution of fitness goals compare?")
     q1 = question_1(df)
     st.dataframe(q1)
-    st.bar_chart(q1["count"])
+    q1_chart = q1.reset_index()
+    st.altair_chart(
+        alt.Chart(q1_chart)
+        .mark_bar()
+        .encode(
+            x=alt.X("fitness_goal:N", title="Fitness goal"),
+            y=alt.Y("count:Q", title="Users"),
+            color=alt.Color("fitness_goal:N", scale=alt.Scale(range=BRAND[:3]), legend=None),
+        ),
+        use_container_width=True,
+    )
 
     st.subheader("Q2 — Average estimated daily calories (goal-adjusted) by activity level")
     st.write(
@@ -197,7 +213,17 @@ try:
     )
     q2 = question_2(df)
     st.dataframe(q2)
-    st.bar_chart(q2["mean"])
+    q2_chart = q2.reset_index()
+    st.altair_chart(
+        alt.Chart(q2_chart)
+        .mark_bar()
+        .encode(
+            x=alt.X("activity_level:N", title="Activity level", sort=["bmr", "sedentary", "light", "moderate", "active", "very_active", "extra_active"]),
+            y=alt.Y("mean:Q", title="Average daily calories"),
+            color=alt.Color("activity_level:N", scale=alt.Scale(domain=["bmr", "sedentary", "light", "moderate", "active", "very_active", "extra_active"], range=BRAND), legend=None),
+        ),
+        use_container_width=True,
+    )
 
     st.subheader("Q3 — Median desired % weight change, lose / gain users, by goal x activity")
     q3 = question_3(df)
